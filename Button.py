@@ -8,8 +8,8 @@ class Button:
         self.text = text
         self.textPos = text_pos
 
-    def draw(self, img):
-        cv2.rectangle(img=img, pt1=self.luPos, pt2=self.drPos, color=(0, 0, 255, cv2.FILLED), thickness=3)
+    def draw(self, img, color: tuple):
+        cv2.rectangle(img=img, pt1=self.luPos, pt2=self.drPos, color=color, thickness=3)
         cv2.putText(img=img, text=self.text, org=self.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5,
                     color=(0, 0, 0), thickness=3)
         return img

@@ -24,7 +24,15 @@ def create_buttons():
     return list(chain.from_iterable(buttons))
 
 
-def move_across_button():
+def hovering_over_button(img, buttons: list, lm: list):
+    for button in buttons:
+        x_lu, y_lu = button.luPos
+        x_dr, y_dr = button.drPos
+        print(x_lu, y_lu, x_dr, y_dr)
+        print(lm[8])
+        if x_lu < lm[8][0] < x_dr and y_lu < lm[8][1] < y_dr:
+            print("yes")
+            button.draw(img=img, color=(0, 255, 0, cv2.FILLED))
 
 
 def main():
@@ -44,23 +52,20 @@ def main():
         # Drawing buttons
         buttons = create_buttons()
         for button in buttons:
-            button.draw(img=img)
+            button.draw(img=img, color=(0, 0, 255, cv2.FILLED))
 
         if hands:
             # finding hands
             hand = hands[0]
             lm, bbox = hand["lmList"], hand["bbox"]
 
+            # Hovering over buttons
             if lm:
-                for button in buttons:
-                    x_lu, y_lu = button.luPos
-                    x_dr, y_dr = button.drPos
+                hovering_over_button(img=img, buttons=buttons, lm=lm)
 
 
-
-
-    cv2.imshow("Image", img)
-    cv2.waitKey(1)
+        cv2.imshow("Virtual Keyboard", img)
+        cv2.waitKey(1)
 
 
 if __name__ == '__main__':
