@@ -3,17 +3,18 @@ import numpy as np
 from cvzone.HandTrackingModule import HandDetector
 from itertools import chain
 from Button import Button
+from time import sleep
 
 
 def create_buttons():
     button_positions = [[(50 + i * 125, 150, 150 + i * 125, 250) for i in range(9)],
-                        [(50 + i * 125, 275, 150 + i * 125, 375) for i in range(9)],
+                        [(50 + i * 125, 275, 150 + i * 125, 375) for i in range(10)],
                         [(50 + i * 125, 400, 150 + i * 125, 500) for i in range(10)]]
     button_text = [["A", "B", "C", "D", "E", "F", "G", "H", "I"],
-                   ["J", "k", "L", "M", "N", "O", "p", "Q", "R"],
+                   ["J", "K", "L", "M", "N", "O", "P", "Q", "R", "Cle"],
                    ["S", "T", "U", "V", "W", "X", "Y", "Z", "_", "Del"]]
     text_position = [[(75 + i * 125, 230) for i in range(9)],
-                     [(75 + i * 125, 355) for i in range(9)],
+                     [(75 + i * 125, 355) for i in range(10)],
                      [(75 + i * 125, 480) for i in range(10)]]
     buttons = []
 
@@ -29,7 +30,7 @@ def create_buttons():
 
 
 def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
-                         final_output: str):
+                         current_output: str):
     for button in buttons:
         x_lu, y_lu = button.luPos
         x_dr, y_dr = button.drPos
@@ -41,16 +42,20 @@ def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
                 cv2.fillPoly(img=img, pts=[points], color=(0, 255, 0))
                 cv2.putText(img=img, text=button.text, org=button.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5,
                             color=(0, 0, 0), thickness=3)
-                print(button.text)
-                final_output = final_output + ' ' if button.text == '_' else '' if button.text == 'Del' else final_output + button.text
-                print(final_output)
+                print(f"Button {button.text} pressed")
+                current_output = current_output + ' ' if button.text == '_' else '' if button.text == 'Cle' else current_output[
+                                                                                                             :-1] if button.text == "Del" else current_output + button.text
+                if len(current_output) > 18:
+                    print("Output is too long!")
+                    current_output = ""
+                print(f"Current output is : {current_output} \n") if current_output != "" else print(f"Current output is blank\n")
+                sleep(0.2) # Sleeping for 0.2 seconds in order to prevent printing more than 1 letter each click
 
-    return final_output
+    return current_output
 
 
 def click(detector: HandDetector, img, lm: list):
     if detector.findDistance(p1=lm[8][:2], p2=lm[12][:2], img=img)[0] < 30:
-        print(lm[8][:2], lm[12][:2])
         print("Click!")
         return True
 
@@ -84,13 +89,14 @@ def main():
             # Hovering over buttons
             if lm:
                 final_output = hovering_over_button(detector=detector, img=img, buttons=buttons,
-                                                    lm=lm, final_output=final_output)
+                                                    lm=lm, current_output=final_output)
 
         # Drawing output on screen
         output_button.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), text=final_output)
 
         cv2.imshow("Virtual Keyboard", img)
-        cv2.waitKey(1)
+        if cv2.waitKey(1) == 27:
+            break
 
 
 if __name__ == '__main__':
