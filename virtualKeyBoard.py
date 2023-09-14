@@ -1,6 +1,4 @@
 import cv2
-import tkinter as tk
-from PIL import Image, ImageTk
 
 import numpy as np
 from cvzone.HandTrackingModule import HandDetector
@@ -62,6 +60,35 @@ def click(detector: HandDetector, img, lm: list):
         print("Click!")
         return True
 
+def resize_image(frame):
+    # Resize the frame while maintaining aspect ratio
+    desired_width = 1280
+    desired_height = 720
+
+    frame_width = frame.shape[1]
+    frame_height = frame.shape[0]
+    aspect_ratio = frame_width / frame_height
+
+    if frame_width > frame_height:
+        new_width = desired_width
+        new_height = int(desired_width / aspect_ratio)
+    else:
+        new_width = int(desired_height * aspect_ratio)
+        new_height = desired_height
+
+    img = cv2.resize(frame, (new_width, new_height))
+
+    # Create an output image with the desired dimensions
+    output_img = np.zeros((desired_height, desired_width, 3), dtype=np.uint8)
+
+    # Calculate the offset to place the resized frame in the center
+    x_offset = (desired_width - new_width) // 2
+    y_offset = (desired_height - new_height) // 2
+
+    # Place the resized frame in the output image
+    output_img[y_offset:y_offset + new_height, x_offset:x_offset + new_width] = img
+
+    return output_img
 
 def main():
     # Setting the camera view
@@ -80,9 +107,16 @@ def main():
 
         # Activating camera
         success, frame = cap.read()
-        hands, img = detector.findHands(frame)
+        if not success:
+            continue
 
-        img = cv2.resize(img, (1280, 720))
+        # resized_image = resize_image(frame=frame)
+
+        img = cv2.resize(frame, (1280, 720))
+
+        hands, img = detector.findHands(img)
+
+        # img = cv2.resize(img, (1280, 720))
 
         # Drawing buttons
         buttons, output_button = create_buttons()
@@ -102,10 +136,6 @@ def main():
 
         # Drawing output on screen
         output_button.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), text=final_output)
-
-        # Resize the content of the window to fit the size of the window
-        # cv2.resize(img, (1280,720))
-        # img = cv2.resize(img, (1280, 720))
 
         cv2.imshow("Virtual Keyboard", img)
         if cv2.waitKey(1) == 27:
