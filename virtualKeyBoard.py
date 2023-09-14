@@ -6,17 +6,27 @@ from itertools import chain
 from Button import Button
 from time import sleep
 
+MAX_OUTPUT_WIDTH = 1230
+BUTTONS_COLOR = (0, 0, 255, cv2.FILLED)
+SPACE = 125
 
-def create_buttons():
-    button_positions = [[(50 + i * 125, 150, 150 + i * 125, 250) for i in range(9)],
-                        [(50 + i * 125, 275, 150 + i * 125, 375) for i in range(10)],
-                        [(50 + i * 125, 400, 150 + i * 125, 500) for i in range(10)]]
+
+def create_buttons() -> (list, Button):
+    """
+    Create all buttons at the correct positions within the camera window, along with their respective text.
+    In addition, create the output line
+
+    :return: A list of all buttons.
+    """
+    button_positions = [[(50 + i * SPACE, 150, 150 + i * SPACE, 250) for i in range(9)],
+                        [(50 + i * SPACE, 275, 150 + i * SPACE, 375) for i in range(10)],
+                        [(50 + i * SPACE, 400, 150 + i * SPACE, 500) for i in range(10)]]
     button_text = [["A", "B", "C", "D", "E", "F", "G", "H", "I"],
                    ["J", "K", "L", "M", "N", "O", "P", "Q", "R", "Cle"],
                    ["S", "T", "U", "V", "W", "X", "Y", "Z", "_", "Del"]]
-    text_position = [[(75 + i * 125, 230) for i in range(9)],
-                     [(75 + i * 125, 355) for i in range(10)],
-                     [(75 + i * 125, 480) for i in range(10)]]
+    text_position = [[(75 + i * SPACE, 230) for i in range(9)],
+                     [(75 + i * SPACE, 355) for i in range(10)],
+                     [(75 + i * SPACE, 480) for i in range(10)]]
     buttons = []
 
     for i in range(3):
@@ -25,13 +35,39 @@ def create_buttons():
         buttons.append(line)
 
     # Output button
-    output_button = Button(lu_pos=(50, 525), dr_pos=(1150, 625), text="", text_pos=(65, 600))
+    output_line = Button(lu_pos=(50, 525), dr_pos=(1230, 625), text="", text_pos=(65, 600))
 
-    return list(chain.from_iterable(buttons)), output_button
+    return list(chain.from_iterable(buttons)), output_line
+
+
+def draw_buttons(img, buttons: list, output_line: Button):
+    """
+    Draw all buttons including output line at the correct position on the window
+
+    :param img: The image frame in which the buttons are drawn.
+    :param buttons: A list of Button objects representing the buttons on the screen.
+    :param output_line: Button object where the output text will be shown
+
+    :return: None
+    """
+    for button in buttons:
+        button.draw(img=img, color=BUTTONS_COLOR)
+    output_line.draw(img=img, color=BUTTONS_COLOR)
 
 
 def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
-                         current_output: str):
+                         current_output: str) -> str:
+    """
+    Detects if a hand is hovering over any of the provided buttons and handles button interactions.
+
+    :param detector: An instance of the HandDetector class for hand tracking.
+    :param img: The image frame in which the buttons are drawn.
+    :param buttons: A list of Button objects representing the buttons on the screen.
+    :param lm: A list of hand landmark points.
+    :param current_output: The current output text associated with button interactions.
+
+    :return: The updated current output text after button interactions.
+    """
     for button in buttons:
         x_lu, y_lu = button.luPos
         x_dr, y_dr = button.drPos
@@ -43,52 +79,35 @@ def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
                 cv2.fillPoly(img=img, pts=[points], color=(0, 255, 0))
                 cv2.putText(img=img, text=button.text, org=button.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5,
                             color=(0, 0, 0), thickness=3)
-                print(f"Button {button.text} pressed")
+                print(f"Button {button.text} is clicked")
                 current_output = current_output + ' ' if button.text == '_' else '' if button.text == 'Cle' else current_output[
-                                                                                                             :-1] if button.text == "Del" else current_output + button.text
-                if len(current_output) > 18:
-                    print("Output is too long!")
+                                                                                                                 :-1] if button.text == "Del" else current_output + button.text
+                if cv2.getTextSize(text=current_output, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5, thickness=3)[0][
+                    0] > MAX_OUTPUT_WIDTH:  # If text length passed output line length, text is too long
+                    print("Output is too long! Clearing output text")
                     current_output = ""
-                print(f"Current output is : {current_output} \n") if current_output != "" else print(f"Current output is blank\n")
-                sleep(0.2) # Sleeping for 0.2 seconds in order to prevent printing more than 1 letter each click
+                else:
+                    print(f"Current output is : {current_output} \n")
+                sleep(0.2)  # Sleeping for 0.2 seconds in order to prevent printing more than 1 letter each click
 
     return current_output
 
 
-def click(detector: HandDetector, img, lm: list):
-    if detector.findDistance(p1=lm[8][:2], p2=lm[12][:2], img=img)[0] < 30:
+def click(detector: HandDetector, img, lm: list) -> bool:
+    """
+    Detects if a click is made by the user.
+
+    :param detector: An instance of the HandDetector class for hand tracking.
+    :param img: The image frame in which the buttons are drawn.
+    :param lm: A list of hand landmark points.
+
+    :return: The updated boolean value for the clicking condition.
+    """
+    if detector.findDistance(p1=lm[8][:2], p2=lm[12][:2], img=img)[
+        0] < 30:  # 30 is the distance between the two fingers are side by side
         print("Click!")
         return True
 
-def resize_image(frame):
-    # Resize the frame while maintaining aspect ratio
-    desired_width = 1280
-    desired_height = 720
-
-    frame_width = frame.shape[1]
-    frame_height = frame.shape[0]
-    aspect_ratio = frame_width / frame_height
-
-    if frame_width > frame_height:
-        new_width = desired_width
-        new_height = int(desired_width / aspect_ratio)
-    else:
-        new_width = int(desired_height * aspect_ratio)
-        new_height = desired_height
-
-    img = cv2.resize(frame, (new_width, new_height))
-
-    # Create an output image with the desired dimensions
-    output_img = np.zeros((desired_height, desired_width, 3), dtype=np.uint8)
-
-    # Calculate the offset to place the resized frame in the center
-    x_offset = (desired_width - new_width) // 2
-    y_offset = (desired_height - new_height) // 2
-
-    # Place the resized frame in the output image
-    output_img[y_offset:y_offset + new_height, x_offset:x_offset + new_width] = img
-
-    return output_img
 
 def main():
     # Setting the camera view
@@ -110,19 +129,13 @@ def main():
         if not success:
             continue
 
-        # resized_image = resize_image(frame=frame)
-
-        img = cv2.resize(frame, (1280, 720))
+        img = cv2.resize(frame, (1280, 720))  # Resize the frame to fit the window resolution
 
         hands, img = detector.findHands(img)
 
-        # img = cv2.resize(img, (1280, 720))
-
         # Drawing buttons
-        buttons, output_button = create_buttons()
-        for button in buttons:
-            button.draw(img=img, color=(0, 0, 255, cv2.FILLED))
-        output_button.draw(img=img, color=(0, 0, 255, cv2.FILLED))
+        buttons, output_line = create_buttons()
+        draw_buttons(img=img, buttons=buttons, output_line=output_line)
 
         if hands:
             # finding hands
@@ -135,7 +148,7 @@ def main():
                                                     lm=lm, current_output=final_output)
 
         # Drawing output on screen
-        output_button.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), text=final_output)
+        output_line.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), new_text=final_output)
 
         cv2.imshow("Virtual Keyboard", img)
         if cv2.waitKey(1) == 27:
