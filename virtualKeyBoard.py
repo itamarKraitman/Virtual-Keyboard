@@ -1,4 +1,7 @@
 import cv2
+import tkinter as tk
+from PIL import Image, ImageTk
+
 import numpy as np
 from cvzone.HandTrackingModule import HandDetector
 from itertools import chain
@@ -63,8 +66,12 @@ def click(detector: HandDetector, img, lm: list):
 def main():
     # Setting the camera view
     cap = cv2.VideoCapture(0)
+
     cap.set(3, 1280)
     cap.set(4, 720)
+
+    cv2.namedWindow("Virtual Keyboard", cv2.WINDOW_FREERATIO)
+    cv2.resizeWindow("Virtual Keyboard", 1280, 720)
 
     detector = HandDetector(detectionCon=0.8)
     final_output = ""
@@ -72,8 +79,10 @@ def main():
     while True:
 
         # Activating camera
-        success, img = cap.read()
-        hands, img = detector.findHands(img)
+        success, frame = cap.read()
+        hands, img = detector.findHands(frame)
+
+        img = cv2.resize(img, (1280, 720))
 
         # Drawing buttons
         buttons, output_button = create_buttons()
@@ -94,9 +103,16 @@ def main():
         # Drawing output on screen
         output_button.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), text=final_output)
 
+        # Resize the content of the window to fit the size of the window
+        # cv2.resize(img, (1280,720))
+        # img = cv2.resize(img, (1280, 720))
+
         cv2.imshow("Virtual Keyboard", img)
         if cv2.waitKey(1) == 27:
             break
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
