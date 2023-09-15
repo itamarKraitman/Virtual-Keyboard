@@ -8,7 +8,7 @@ about them by clicking on the links.
 ------
 
 ### Overview
-<br> In this project, the goal is to use Computer Vision techniques in order to create a virtual keyboard.
+In this project, the goal is to use Computer Vision techniques in order to create a virtual keyboard.
 <br> The keyboard is located on the webcam window, and one can write letters by easily hovering over the keyboard's buttons with the index finger, and clicking
 on them by snapping index and middle fingers. 
 <br> In addition, onw can delete the last letter by clicking on the 'Del' button, and clear the whole text by clicking on the 
