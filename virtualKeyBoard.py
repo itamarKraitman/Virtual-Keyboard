@@ -1,156 +1,11 @@
 import cv2
-
-import numpy as np
 from cvzone.HandTrackingModule import HandDetector
-from itertools import chain
-from time import sleep
 
 import warnings
 
+from ButtonsUtils import ButtonsUtils
+
 warnings.filterwarnings("ignore")
-
-MAX_OUTPUT_WIDTH = 1230
-BUTTONS_COLOR = (0, 0, 255, cv2.FILLED)
-SPACE = 125
-
-
-class Button:
-
-    def __init__(self, lu_pos: tuple, dr_pos: tuple, text: str, text_pos: tuple):
-        self.luPos = lu_pos
-        self.drPos = dr_pos
-        self.text = text
-        self.textPos = text_pos
-
-    def draw(self, img, color: tuple) -> np.array:
-        """
-        Draw the Button object at the correct position with its text on the image using its position properties
-
-        :param img: The image frame where the button is drawn
-        :param color: The color which the button is drawn with
-
-        :return: The image itself
-        """
-        cv2.rectangle(img=img, pt1=self.luPos, pt2=self.drPos, color=color, thickness=3)
-        if self.text == "Del" or "Cle":  # Delete and clear buttons
-            cv2.putText(img=img, text=self.text, org=self.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2,
-                        color=(0, 0, 0), thickness=3)
-        else:  # all other buttons and output line
-            cv2.putText(img=img, text=self.text, org=self.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5,
-                        color=(0, 0, 0), thickness=3)
-        return img
-
-    def draw_with_external_text(self, img, color: tuple, new_text: str):
-        """
-        Draw the button at the correct position with a text that supplied as argument on the image using its position properties
-
-        :param img: The image frame where the button is drawn
-        :param color: The color which the button is drawn with
-        :param new_text: The text the button should contain
-
-        :return: The image itself
-        """
-
-        self.text = new_text
-        self.draw(img=img, color=color)
-
-
-def create_buttons() -> (list, Button):
-    """
-    Create all buttons at the correct positions within the camera window, along with their respective text.
-    In addition, create the output line
-
-    :return: A list of all buttons.
-    """
-    button_positions = [[(50 + i * SPACE, 150, 150 + i * SPACE, 250) for i in range(9)],
-                        [(50 + i * SPACE, 275, 150 + i * SPACE, 375) for i in range(10)],
-                        [(50 + i * SPACE, 400, 150 + i * SPACE, 500) for i in range(10)]]
-    button_text = [["A", "B", "C", "D", "E", "F", "G", "H", "I"],
-                   ["J", "K", "L", "M", "N", "O", "P", "Q", "R", "Cle"],
-                   ["S", "T", "U", "V", "W", "X", "Y", "Z", "_", "Del"]]
-    text_position = [[(75 + i * SPACE, 230) for i in range(9)],
-                     [(75 + i * SPACE, 355) for i in range(10)],
-                     [(75 + i * SPACE, 480) for i in range(10)]]
-    buttons = []
-
-    for i in range(3):
-        line = [Button(lu_pos=position[:2], dr_pos=position[2:], text=text, text_pos=t_position) for
-                position, text, t_position in zip(button_positions[i], button_text[i], text_position[i])]
-        buttons.append(line)
-
-    # Output button
-    output_line = Button(lu_pos=(50, 525), dr_pos=(1230, 625), text="", text_pos=(65, 600))
-
-    return list(chain.from_iterable(buttons)), output_line
-
-
-def draw_buttons(img, buttons: list, output_line: Button):
-    """
-    Draw all buttons including output line at the correct position on the window
-
-    :param img: The image frame in which the buttons are drawn.
-    :param buttons: A list of Button objects representing the buttons on the screen.
-    :param output_line: Button object where the output text will be shown
-
-    :return: None
-    """
-    for button in buttons:
-        button.draw(img=img, color=BUTTONS_COLOR)
-    output_line.draw(img=img, color=BUTTONS_COLOR)
-
-
-def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
-                         current_output: str) -> str:
-    """
-    Detects if a hand is hovering over any of the provided buttons and handles button interactions.
-
-    :param detector: An instance of the HandDetector class for hand tracking.
-    :param img: The image frame in which the buttons are drawn.
-    :param buttons: A list of Button objects representing the buttons on the screen.
-    :param lm: A list of hand landmark points.
-    :param current_output: The current output text associated with button interactions.
-
-    :return: The updated current output text after button interactions.
-    """
-    for button in buttons:
-        x_lu, y_lu = button.luPos
-        x_dr, y_dr = button.drPos
-        if x_lu < lm[8][0] < x_dr and y_lu < lm[8][1] < y_dr:
-            button.draw(img=img, color=(0, 255, 0, cv2.FILLED))
-            if click(detector=detector, img=img, lm=lm):
-                ru_pos, ld_pos = [button.drPos[0], button.luPos[1]], [button.luPos[0], button.drPos[1]]
-                points = np.array([button.luPos, ru_pos, button.drPos, ld_pos])
-                cv2.fillPoly(img=img, pts=[points], color=(0, 255, 0))
-                cv2.putText(img=img, text=button.text, org=button.textPos, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5,
-                            color=(0, 0, 0), thickness=3)
-                print(f"Button {button.text} is clicked")
-                current_output = current_output + ' ' if button.text == '_' else '' if button.text == 'Cle' else current_output[
-                                                                                                                 :-1] if button.text == "Del" else current_output + button.text
-                if cv2.getTextSize(text=current_output, fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=5, thickness=3)[0][
-                    0] > MAX_OUTPUT_WIDTH:  # If text length passed output line length, text is too long
-                    print("Output is too long! Clearing output text")
-                    current_output = ""
-                else:
-                    print(f"Current output is : {current_output} \n")
-                sleep(0.2)  # Sleeping for 0.2 seconds in order to prevent printing more than 1 letter each click
-
-    return current_output
-
-
-def click(detector: HandDetector, img, lm: list) -> bool:
-    """
-    Detects if a click is made by the user.
-
-    :param detector: An instance of the HandDetector class for hand tracking.
-    :param img: The image frame in which the buttons are drawn.
-    :param lm: A list of hand landmark points.
-
-    :return: The updated boolean value for the clicking condition.
-    """
-    if detector.findDistance(p1=lm[8][:2], p2=lm[12][:2], img=img)[
-        0] < 30:  # 30 is the distance between the two fingers are side by side
-        print("Click!")
-        return True
 
 
 def main():
@@ -178,8 +33,8 @@ def main():
         hands, img = detector.findHands(img)
 
         # Drawing buttons
-        buttons, output_line = create_buttons()
-        draw_buttons(img=img, buttons=buttons, output_line=output_line)
+        buttons, output_line = ButtonsUtils.create_buttons()
+        ButtonsUtils.draw_buttons(img=img, buttons=buttons, output_line=output_line)
 
         if hands:
             # finding hands
@@ -188,8 +43,8 @@ def main():
 
             # Hovering over buttons
             if lm:
-                final_output = hovering_over_button(detector=detector, img=img, buttons=buttons,
-                                                    lm=lm, current_output=final_output)
+                final_output = ButtonsUtils.hovering_over_button(detector=detector, img=img, buttons=buttons,
+                                                                      lm=lm, current_output=final_output)
 
         # Drawing output on screen
         output_line.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), new_text=final_output)
