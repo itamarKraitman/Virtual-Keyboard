@@ -11,14 +11,14 @@ from Button import Button
 class ButtonsUtils:
 
     @staticmethod
-    def create_buttons() -> (list, Button):
+    def create_buttons(space=125) -> (list, Button):
         """
         Create all buttons at the correct positions within the camera window, along with their respective text.
         In addition, create the output line
 
         :return: A list of all buttons.
         """
-        space = 125
+
         button_positions = [[(50 + i * space, 150, 150 + i * space, 250) for i in range(9)],
                             [(50 + i * space, 275, 150 + i * space, 375) for i in range(10)],
                             [(50 + i * space, 400, 150 + i * space, 500) for i in range(10)]]
@@ -41,7 +41,7 @@ class ButtonsUtils:
         return list(chain.from_iterable(buttons)), output_line
 
     @staticmethod
-    def draw_buttons(img, buttons: list, output_line: Button):
+    def draw_buttons(img, buttons: list, output_line: Button, buttons_color=(0, 0, 255, cv2.FILLED)):
         """
         Draw all buttons including output line at the correct position on the window
 
@@ -51,14 +51,14 @@ class ButtonsUtils:
 
         :return: None
         """
-        buttons_color = (0, 0, 255, cv2.FILLED)
+
         for button in buttons:
             button.draw(img=img, color=buttons_color)
         output_line.draw(img=img, color=buttons_color)
 
     @staticmethod
     def hovering_over_button(detector: HandDetector, img, buttons: list, lm: list,
-                             current_output: str) -> str:
+                             current_output: str, max_output_width=1230) -> str:
         """
         Detects if a hand is hovering over any of the provided buttons and handles button interactions.
 
@@ -70,7 +70,6 @@ class ButtonsUtils:
 
         :return: The updated current output text after button interactions.
         """
-        max_output_width = 1230
 
         def click() -> bool:
             """
@@ -109,3 +108,45 @@ class ButtonsUtils:
                     sleep(0.2)  # Sleeping for 0.2 seconds in order to prevent printing more than 1 letter each click
 
         return current_output
+
+    @staticmethod
+    def run(cap: cv2.VideoCapture):
+        """
+        Activating the keyboard with all utilities
+        :param cap: Video camera to display the keyboard on
+        :return:
+        """
+        detector = HandDetector(detectionCon=0.8)
+        final_output = ""
+
+        while True:
+
+            # Activating camera
+            success, frame = cap.read()
+            if not success:
+                continue
+
+            img = cv2.resize(frame, (1280, 720))  # Resize the frame to fit the window resolution
+
+            hands, img = detector.findHands(img)
+
+            # Drawing buttons
+            buttons, output_line = ButtonsUtils.create_buttons()
+            ButtonsUtils.draw_buttons(img=img, buttons=buttons, output_line=output_line)
+
+            if hands:
+                # finding hands
+                hand = hands[0]
+                lm, bbox = hand["lmList"], hand["bbox"]
+
+                # Hovering over buttons
+                if lm:
+                    final_output = ButtonsUtils.hovering_over_button(detector=detector, img=img, buttons=buttons,
+                                                                     lm=lm, current_output=final_output)
+
+            # Drawing output on screen
+            output_line.draw_with_external_text(img=img, color=(0, 0, 255, cv2.FILLED), new_text=final_output)
+
+            cv2.imshow("Virtual Keyboard", img)
+            if cv2.waitKey(1) == 27:
+                break
