@@ -33,4 +33,4 @@ In order to run the program on your machine, do the following:
 
 ---
 
-![](https://github.com/itamarKraitman/Virtual-Keyboard/blob/main/Demonstration.gif)
+![Recurrent Video](https://github.com/itamarKraitman/Virtual-Keyboard/blob/main/Demonstration.gif)
