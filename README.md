@@ -1,10 +1,5 @@
 # Virtual Keyboard with Hand Tracking
 
-
-Hello and welcome to this project.
-<br> This project creates a virtual keyboard using the Computer Vision libraries [OpenCV](https://opencv.org) (cv2) and [cvzone](https://computervision.zone). You can find out more
-about them by clicking on the links. 
-
 ------
 
 ### Overview
@@ -37,3 +32,5 @@ In order to run the program on your machine, do the following:
 * Enjoy the show!
 
 ---
+
+![](https://github.com/itamarKraitman/Virtual-Keyboard/blob/main/Demonstration.gif)
