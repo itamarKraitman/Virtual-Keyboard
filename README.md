@@ -11,6 +11,10 @@ on them by snapping index and middle fingers.
 
 ---
 
+![Recurrent Video](https://github.com/itamarKraitman/Virtual-Keyboard/blob/main/Demonstration.gif)
+
+---
+
 ### Requirements
 Before running the system, make sure you have the following libraries installed:
 * OpenCV (`cv2`).
@@ -33,4 +37,3 @@ In order to run the program on your machine, do the following:
 
 ---
 
-![Recurrent Video](https://github.com/itamarKraitman/Virtual-Keyboard/blob/main/Demonstration.gif)
